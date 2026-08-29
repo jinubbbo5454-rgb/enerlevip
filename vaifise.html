@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ヴェフィス語 辞書</title>
+<style>
+/* ヴェフィス文字の書体。辞書と同じリポジトリから取得する */
+@font-face{
+  font-family:"Daisevaile";
+  src:url("https://raw.githubusercontent.com/jurliyuuri/lineparine/master/fonts/daisevaile.woff") format("woff");
+  font-display:swap}
+:root{
+  --ink:#1c2530; --paper:#f4f6f8; --card:#ffffff; --line:#d8dee5;
+  --accent:#274c8f; --accent-bg:#e7eefb;
+  --buffer:#5a5f6a; --buffer-bg:#eceef1;
+  --digit:#4a4f9b; --digit-bg:#e9eafa;
+  --pos:#0f6b5c; --pos-bg:#e2f3ef;
+  --meta:#77808c; --ety:#8a8f98;
+  --usage:#7a2e63; --usage-bg:#f6e7f1;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif;
+  font-size:15px;line-height:1.7}
+.wrap{max-width:880px;margin:0 auto;padding:24px 20px 64px}
+header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+header h1{font-size:21px;margin:0;letter-spacing:.02em}
+header .stat{font-size:12px;color:var(--meta)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+section[hidden]{display:none}
+footer{margin-top:26px;font-size:12px;color:var(--meta)}
+
+/* ---- 辞書 ---- */
+.searchbar{position:sticky;top:0;z-index:5;background:var(--paper);padding:6px 0 12px}
+#q{width:100%;font-size:17px;padding:11px 14px;border:1px solid var(--line);border-radius:8px;
+  font-family:"SF Mono",Consolas,"Noto Sans Mono",monospace}
+#q:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.opts{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-size:13px;color:#3d4652}
+.opts label{display:flex;align-items:center;gap:5px;cursor:pointer}
+.opts fieldset{border:none;margin:0;padding:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.opts legend{float:left;padding:0 6px 0 0;color:var(--meta);font-size:12px}
+#count{font-size:13px;color:var(--meta);margin:12px 2px 8px}
+.entry{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin-bottom:10px}
+.entry h2{margin:0 0 4px;font-size:18px;font-family:"SF Mono",Consolas,monospace;color:var(--accent)}
+/* ヴェフィス語の綴り。書体を切り替えたときだけ字体が変わる */
+body.vfont .vf{font-family:"Daisevaile","SF Mono",Consolas,monospace}
+.fhit{font-size:12px;color:var(--meta);margin:0 0 6px}
+.fhit b{font-family:"SF Mono",Consolas,monospace;color:var(--accent);font-weight:600}
+.cpron{font-size:11px;color:var(--meta);font-family:"SF Mono",Consolas,monospace;font-weight:400}
+.pron-gen{opacity:.75;text-decoration:underline dotted;text-underline-offset:3px;cursor:help}
+.pron-gen sup{font-size:9px}
+.entry h2 .pron{font-size:13px;color:var(--meta);font-family:inherit;margin-left:10px;font-weight:400}
+.entry h2 .plink{font-size:12px;color:var(--accent);font-family:inherit;font-weight:400;
+  margin-left:12px;text-decoration:underline;cursor:pointer}
+.tl{margin:0;white-space:pre-wrap;word-break:break-word}
+.tl .pos{color:var(--pos);background:var(--pos-bg);border-radius:5px;padding:0 5px;font-size:13px;margin-right:2px}
+.tl .code{color:var(--digit);background:var(--digit-bg);border-radius:5px;padding:0 5px;font-size:12.5px;
+  font-family:"SF Mono",Consolas,monospace;margin-right:3px}
+.tl .usage{color:var(--usage);background:var(--usage-bg);border-radius:5px;padding:0 5px;font-size:13px}
+.tl .ety{color:var(--ety);font-size:13px}
+.tl mark,.ex mark{background:#ffe9a8;padding:0 1px;border-radius:2px}
+.tl a.url,.ex a.url{color:var(--accent);text-decoration:underline;word-break:break-all}
+.tl a.url:hover,.ex a.url:hover{background:var(--accent-bg)}
+.conjbtn{font-size:11.5px;color:var(--accent);background:var(--accent-bg);border:1px solid #cddcf5;
+  border-radius:99px;padding:1px 10px;cursor:pointer;font-family:inherit;vertical-align:1px}
+.conjbtn:hover{background:#d8e5fa}
+.conjbtn[aria-expanded="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.conj{white-space:normal;margin:8px 0 10px;padding:10px 14px;background:#f8fafb;
+  border:1px solid var(--line);border-radius:8px}
+.conj[hidden]{display:none}
+.chead{font-size:12.5px;color:#3d4652;margin-bottom:6px}
+.chead .cstem,.chead .ccode{color:var(--meta);margin-left:10px}
+.chead .ccode{font-family:"SF Mono",Consolas,monospace}
+table.ctab{border-collapse:collapse;font-size:14px}
+table.ctab th{text-align:left;font-weight:400;color:var(--meta);padding:2px 14px 2px 0;
+  white-space:nowrap;vertical-align:top;font-size:13px}
+table.ctab td{padding:2px 0;font-family:"SF Mono",Consolas,monospace;color:var(--ink);word-break:break-word}
+.ex{margin:8px 0 0;padding:8px 12px;border-left:3px solid var(--line);color:#3d4652;font-size:14px;white-space:pre-wrap}
+#notice{margin:2px 0 10px;font-size:14px;color:#3d4652}
+#notice:empty{display:none}
+.none{color:#8a5a2e;background:#fdf3e4;border:1px solid #f0dcc0;border-radius:8px;padding:9px 12px;font-size:13px}
+.err{color:#8a2e2e;background:#fdeaea;border:1px solid #f0c0c0;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:8px}
+.fallback{color:#5a6472;background:var(--accent-bg);border-radius:8px;padding:8px 12px;font-size:13px;margin-bottom:8px}
+.pager{display:flex;justify-content:center;align-items:center;gap:6px;margin:18px 0;flex-wrap:wrap}
+.pager button{min-width:38px;height:38px;padding:0 8px;font-size:14px;border:1px solid var(--line);
+  border-radius:8px;background:var(--card);cursor:pointer;color:var(--ink)}
+.pager button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.pager button[aria-current="page"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.pager button:disabled{opacity:.35;cursor:default}
+.pager .gap{color:var(--meta);padding:0 2px;user-select:none}
+.shufflebtn{padding:4px 14px;font-size:12px;border:1px solid var(--line);border-radius:99px;
+  background:var(--card);cursor:pointer;color:#3d4652;margin:12px 0 8px}
+.shufflebtn:hover{border-color:var(--accent);color:var(--accent)}
+.cmore{margin-top:8px;padding:4px 16px;font-size:12px;border:1px solid var(--line);
+  border-radius:99px;background:var(--card);cursor:pointer;color:#3d4652}
+.cmore:hover{border-color:var(--accent);color:var(--accent)}
+@media (max-width:560px){.opts{gap:8px}}
+#loading[hidden]{display:none}
+#loading{position:fixed;inset:0;background:var(--paper);z-index:50;display:flex;
+  align-items:center;justify-content:center;flex-direction:column;gap:14px}
+#loading .box{width:min(420px,86vw);text-align:center}
+#loadmsg{font-size:14px;color:#3d4652;margin-bottom:10px}
+#loadbar{width:100%;height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+#loadbar div{height:100%;width:0%;background:var(--accent);transition:width .2s}
+#loaderr{color:#8a2e2e;font-size:13px;margin-top:10px}
+#loaderr button{margin-left:8px;padding:4px 14px;border:1px solid var(--line);border-radius:8px;
+  background:var(--card);cursor:pointer}
+</style>
+</head>
+<body>
+<div id="loading"><div class="box">
+  <div id="loadmsg">辞書を読み込んでいます…</div>
+  <div id="loadbar"><div id="loadbarin"></div></div>
+  <div id="loaderr"></div>
+</div></div>
+<div class="wrap">
+<header>
+  <h1>ヴェフィス語 辞書</h1>
+  <span class="stat" id="stat"></span>
+</header>
+
+<!-- ============ 辞書 ============ -->
+<section id="sec-dic">
+  <div class="searchbar"><div class="panel">
+    <input type="search" id="q" placeholder="単語を入力（アクセント記号は省略可・明示すると厳密に照合）" spellcheck="false"
+      aria-label="検索語">
+    <div class="opts">
+      <fieldset id="scope"><legend>対象</legend>
+        <label><input type="radio" name="scope" value="both" checked>見出し語＋訳語</label>
+        <label><input type="radio" name="scope" value="head">見出し語</label>
+        <label><input type="radio" name="scope" value="trans">訳語</label>
+        <label><input type="radio" name="scope" value="full">全文</label>
+      </fieldset>
+      <fieldset id="mode"><legend>方式</legend>
+        <label><input type="radio" name="mode" value="prefix" checked>前方一致</label>
+        <label><input type="radio" name="mode" value="partial">部分一致</label>
+        <label><input type="radio" name="mode" value="exact">完全一致</label>
+        <label><input type="radio" name="mode" value="regex">正規表現</label>
+      </fieldset>
+      <fieldset id="extra"><legend>ほか</legend>
+        <label title="活用・変化した形を入力しても、その辞書形が出るようにします"><input
+          type="checkbox" id="useinfl" checked>変化形も探す</label>
+        <label title="ヴェフィス語の綴りを daisevaile の字体で表示します。字体にアクセント記号付きの字が無いため、表示は記号を外した形になります（検索の照合は元の綴りのままです）"><input
+          type="checkbox" id="usefont">ヴェフィス文字で表示</label>
+      </fieldset>
+    </div>
+    <div id="searcherr"></div>
+  </div></div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div id="count"></div>
+    <button id="shuffle" class="shufflebtn" title="表示順をシャッフル">シャッフル</button>
+  </div>
+  <div id="notice"></div>
+  <div id="results" aria-live="polite"></div>
+  <nav id="pager" class="pager" aria-label="ページ切り替え"></nav>
+</section>
+
+<footer>データ: <span id="datastatus"></span><br>
+活用・変化は文法規則から自動で生成しており、誤っている可能性があります。<br>
+変化形の発音と、発音欄の無い見出し語の /…/<sup>?</sup> は、発音を自動で生成しており、誤っている可能性があります。</footer>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+ * ヴェフィス語辞書 — 単一ファイル構成
+ *
+ * データの流れ:
+ *   Vaifise.dic (PDIC/Unicode, GitHub raw)
+ *     → loadDictionary()  … Rangeリクエストで取得・解析した生エントリ列
+ *     → buildWords()      … 正規表記へ統一し、検索索引・変化形索引を付けた WORDS
+ *     → search()/render系 … WORDS だけを見る
+ *   生エントリ列は IndexedDB にキャッシュされ、次回は buildWords() からやり直す
+ *   （構築ルールを変えてもキャッシュはそのまま使える）。
+ *
+ * セクション:
+ *   1. 設定           4. 辞書モデル(WORDS)   7. 活用・変化(CONJ)   10. キャッシュと起動
+ *   2. PDICリーダ     5. 検索                8. 表示
+ *   3. 文字処理       6. 発音(PRON)          9. 検索UI
+ * ============================================================ */
+
+/* ==================== 1. 設定 ==================== */
+/* 辞書の取得元。CORS対応が必要（GitHub raw は対応済み）。
+   Web公開時に同一オリジンに置くなら相対パスでも可。 */
+const DIC_URL = "https://raw.githubusercontent.com/jurliyuuri/lineparine/master/dictionary/Vaifise.dic";
+const PAGE = 50;             // 1ページの件数
+const RANDOM_COUNT = 50;     // 「シャッフル」での未入力時に出す件数
+const CACHE_VERSION = 1;     // 生エントリの形を変えたらここを上げる(旧キャッシュを無効化)
+
+/* ============================================================
+ * 2. PDIC/Unicode 6.10 リーダ（ブラウザ内・Range対応）
+ * 典拠: PDIC辞書形式仕様(6.10) / BOCU-1: UTN#6, ICUリファレンス定数
+ * ============================================================ */
+
+/* ---------------- BOCU-1 ---------------- */
+const B1 = (() => {
+  const MIDDLE = 0x90, TRAIL_COUNT = 243, TRAIL_BYTE_OFFSET = 0x21 - 20;
+  const REACH_POS_1 = 63, REACH_NEG_1 = -64;
+  const REACH_POS_2 = REACH_POS_1 + 43 * TRAIL_COUNT;
+  const REACH_NEG_2 = REACH_NEG_1 - 43 * TRAIL_COUNT;
+  const REACH_POS_3 = REACH_POS_2 + 3 * TRAIL_COUNT * TRAIL_COUNT;
+  const REACH_NEG_3 = REACH_NEG_2 - 3 * TRAIL_COUNT * TRAIL_COUNT;
+  const START_POS_2 = MIDDLE + REACH_POS_1 + 1;   // 0xD0
+  const START_POS_3 = START_POS_2 + 43;           // 0xFB
+  const START_POS_4 = START_POS_3 + 3;            // 0xFE
+  const START_NEG_2 = MIDDLE + REACH_NEG_1;       // 0x50
+  const START_NEG_3 = START_NEG_2 - 43;           // 0x25
+  const BYTE_TO_TRAIL = [-1,0,1,2,3,4,5,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+                          6,7,8,9,10,11,12,13,14,15,-1,-1,16,17,18,19,-1];
+  function prevState(c) {
+    if (c >= 0x3040 && c <= 0x309F) return 0x3070;
+    if (c >= 0x4E00 && c <= 0x9FA5) return 0x4E00 - REACH_NEG_2;
+    if (c >= 0xAC00 && c <= 0xD7A3) return (0xD7A3 + 0xAC00) >> 1;
+    return (c & ~0x7F) + 0x40;
+  }
+  function decode(bytes) {
+    let out = "", prev = 0x40, i = 0;
+    const n = bytes.length;
+    while (i < n) {
+      const b = bytes[i++];
+      if (b <= 0x20) { out += String.fromCharCode(b); if (b !== 0x20) prev = 0x40; continue; }
+      if (b === 0xFF) { prev = 0x40; continue; }
+      let diff, count;
+      if (b >= START_NEG_2 && b < START_POS_2) { diff = b - MIDDLE; count = 0; }
+      else if (b >= START_POS_2) {
+        if (b < START_POS_3)      { diff = (b - START_POS_2) * TRAIL_COUNT + REACH_POS_1 + 1; count = 1; }
+        else if (b < START_POS_4) { diff = (b - START_POS_3) * TRAIL_COUNT * TRAIL_COUNT + REACH_POS_2 + 1; count = 2; }
+        else                      { diff = REACH_POS_3 + 1; count = 3; }
+      } else {
+        if (b >= START_NEG_3)     { diff = (b - START_NEG_2) * TRAIL_COUNT + REACH_NEG_1; count = 1; }
+        else if (b > 0x21)        { diff = (b - START_NEG_3) * TRAIL_COUNT * TRAIL_COUNT + REACH_NEG_2; count = 2; }
+        else                      { diff = -TRAIL_COUNT * TRAIL_COUNT * TRAIL_COUNT + REACH_NEG_3; count = 3; }
+      }
+      while (count) {
+        let t = bytes[i++];
+        t = (t <= 0x20) ? BYTE_TO_TRAIL[t] : t - TRAIL_BYTE_OFFSET;
+        if (t < 0) throw new Error("BOCU-1: illegal trail byte");
+        diff += t * Math.pow(TRAIL_COUNT, count - 1);
+        count--;
+      }
+      const c = prev + diff;
+      if (c < 0 || c > 0x10FFFF) throw new Error("BOCU-1: out of range");
+      out += String.fromCodePoint(c);
+      prev = prevState(c);
+    }
+    return out;
+  }
+  return { decode };
+})();
+
+/* ---------------- Rangeリーダ ---------------- */
+class RangeReader {
+  constructor(url) { this.url = url; this.size = null; this.lastModified = null; }
+  async fetchRange(start, end) {           // end含む。一時的な通信失敗は自動リトライ
+    let res, lastErr;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      if (attempt) await new Promise(r => setTimeout(r, 400 * attempt));
+      try {
+        res = await fetch(this.url, { headers: { Range: `bytes=${start}-${end}` } });
+        if (res.status === 206 || res.status === 200) { lastErr = null; break; }
+        lastErr = new Error("HTTP " + res.status);
+        if (res.status >= 400 && res.status < 500 && res.status !== 429) break; // 恒久的エラーは即時中断
+      } catch (e) { lastErr = e; }          // "Failed to fetch" 等のネットワークエラー
+    }
+    if (lastErr) throw lastErr;
+    if (!this.lastModified) this.lastModified = res.headers.get("Last-Modified");
+    const buf = new Uint8Array(await res.arrayBuffer());
+    if (res.status === 200) {               // Range非対応サーバへのフォールバック
+      this.whole = buf; this.size = buf.length;
+      return buf.subarray(start, end + 1);
+    }
+    const cr = res.headers.get("Content-Range");
+    if (cr && this.size === null) this.size = parseInt(cr.split("/")[1], 10);
+    return buf;
+  }
+  async read(start, len) {
+    if (this.whole) return this.whole.subarray(start, start + len);
+    return this.fetchRange(start, start + len - 1);
+  }
+}
+
+/* ---------------- PDIC 6.10 パーサ ---------------- */
+const PDIC = (() => {
+  const u16 = (b, o) => b[o] | (b[o + 1] << 8);
+  const u32 = (b, o) => (b[o] | (b[o+1] << 8) | (b[o+2] << 16) | (b[o+3] << 24)) >>> 0;
+
+  function parseHeader(head) {
+    const txt = new TextDecoder("latin1").decode(head.subarray(0, 100));
+    if (!txt.includes("Dictionary for PDIC")) throw new Error("PDIC辞書ではありません");
+    const version = u16(head, 0x8C);
+    if ((version >> 8) !== 6) throw new Error("未対応バージョン: 0x" + version.toString(16));
+    const h = {
+      index_block: u16(head, 0x94),
+      nword: u32(head, 0xA0),
+      dictype: head[0xA5],
+      index_blkbit: head[0xB6],
+      extheader: u32(head, 0xB8),
+      nindex2: u32(head, 0xC0),
+    };
+    if (h.dictype & 0x40) throw new Error("暗号化辞書は未対応です");
+    h.index_start = 1024 + h.extheader;
+    h.data_start = h.index_start + 1024 * h.index_block;
+    return h;
+  }
+
+  function parseIndex(h, idx) {
+    const bids = [];
+    let pos = 0;
+    for (let k = 0; k < h.nindex2; k++) {
+      const bid = h.index_blkbit ? u32(idx, pos) : u16(idx, pos);
+      pos += h.index_blkbit ? 4 : 2;
+      while (idx[pos] !== 0) pos++;         // ブロック先頭見出し語は読み飛ばす
+      pos++;
+      bids.push(bid);
+    }
+    return bids;
+  }
+
+  /* 1ブロックを解析。firstChunkはブロック先頭からの部分バイト列。
+     more(absOffset)で続きを取得(非同期)。バイナリ拡張(画像等)は本体を
+     取得せず {off,len} のみ記録して読み飛ばす。 */
+  async function parseBlock(baseAbs, firstChunk, more, sink) {
+    let buf = firstChunk, bufAbs = baseAbs, p = 0;
+    const abs = () => bufAbs + p;
+    async function ensure(nBytes) {
+      while (p + nBytes > buf.length) {
+        const nxt = await more(bufAbs + buf.length);
+        if (!nxt || nxt.length === 0) throw new Error("unexpected EOF in block");
+        const merged = new Uint8Array(buf.length + nxt.length);
+        merged.set(buf); merged.set(nxt, buf.length);
+        buf = merged;
+      }
+    }
+    function drop() {                        // 消費済み前方を捨ててメモリを抑える
+      if (p > 65536) { buf = buf.subarray(p); bufAbs += p; p = 0; }
+    }
+    async function skipTo(absTarget) {       // フェッチせずに読み飛ばす
+      if (absTarget <= bufAbs + buf.length) { p = absTarget - bufAbs; }
+      else { buf = new Uint8Array(0); bufAbs = absTarget; p = 0; }
+    }
+    async function readU16() { await ensure(2); const v = u16(buf, p); p += 2; return v; }
+    async function readU32() { await ensure(4); const v = u32(buf, p); p += 4; return v; }
+    async function readCStr(limitAbs) {      // NUL終端(またはlimit)までを返しNULを消費
+      let e = p;
+      for (;;) {
+        if (bufAbs + e >= limitAbs) break;
+        if (e >= buf.length) { await ensure(e - p + 1); }
+        if (buf[e] === 0) break;
+        e++;
+      }
+      const bytes = buf.subarray(p, e);
+      p = e + (bufAbs + e < limitAbs ? 1 : 0);
+      return bytes;
+    }
+
+    let blen = await readU16();
+    const wide = !!(blen & 0x8000);
+    blen &= 0x7FFF;
+    if (blen === 0) return;
+    const blockEnd = baseAbs + 1024 * blen;
+    let prevHead = new Uint8Array(0);
+    while (abs() < blockEnd) {
+      drop();
+      const flen = wide ? await readU32() : await readU16();
+      if (flen === 0) break;
+      await ensure(2);
+      const omit = buf[p], attr = buf[p + 1]; p += 2;
+      const entryEndAbs = abs() + flen;
+      if (attr === 0xFF) { await skipTo(entryEndAbs); continue; }   // リファレンス登録語
+      const headBytes = await readCStr(entryEndAbs);
+      const headRaw = new Uint8Array(omit + headBytes.length);
+      headRaw.set(prevHead.subarray(0, omit));
+      headRaw.set(headBytes, omit);
+      prevHead = headRaw;
+      const head = B1.decode(headRaw);
+      const tab = head.indexOf("\t");
+      const entry = { keyword: tab >= 0 ? head.slice(0, tab) : head,
+                      headword: tab >= 0 ? head.slice(tab + 1) : head,
+                      translation: "", pron: [], examples: [] };
+      if (attr & 0x10) {                    // 拡張構成
+        entry.translation = B1.decode(await readCStr(entryEndAbs));
+        while (abs() < entryEndAbs) {
+          await ensure(1);
+          const ea = buf[p]; p += 1;
+          if (ea === 0x80) break;
+          const kind = ea & 0x0F, binary = !!(ea & 0x10);
+          if (binary) {                     // 画像等のバイナリ拡張は読み飛ばす
+            const clen = wide ? await readU32() : await readU16();
+            await skipTo(abs() + clen);
+          } else {
+            const txt = B1.decode(await readCStr(entryEndAbs));
+            if (kind === 1) entry.examples.push(txt);
+            else if (kind === 2) entry.pron.push(txt);
+          }
+        }
+      } else {
+        let raw = await readCStr(entryEndAbs);
+        while (raw.length && raw[raw.length - 1] === 0) raw = raw.subarray(0, raw.length - 1);
+        entry.translation = B1.decode(raw);
+      }
+      sink(entry);
+      await skipTo(entryEndAbs);
+    }
+  }
+
+  return { parseHeader, parseIndex, parseBlock };
+})();
+
+/* ---------------- ロード全体の統括 ---------------- */
+async function loadDictionary(url, onProgress) {
+  const reader = new RangeReader(url);
+  onProgress("辞書ヘッダを取得中…", 0);
+  const head = await reader.read(0, 1024);
+  const h = PDIC.parseHeader(head);
+  onProgress("インデックスを取得中…", 0.02);
+  const idx = await reader.read(h.index_start, 1024 * h.index_block);
+  const bids = PDIC.parseIndex(h, idx);
+  // ブロックは連続配置: サイズ = 次ブロックとの差。最後のブロックはファイル末尾まで
+  // (最初のRangeレスポンスでsizeが埋まる。万一不明なら1GBを上限として扱う)
+  const sorted = bids.slice().sort((a, b) => a - b);
+  const fileKB = Math.ceil(((reader.size ?? 2 ** 30) - h.data_start) / 1024);
+  const sizeOf = new Map();
+  for (let i = 0; i < sorted.length; i++) {
+    const next = i + 1 < sorted.length ? sorted[i + 1] : fileKB;
+    sizeOf.set(sorted[i], next - sorted[i]);
+  }
+  const SMALL_KB = 32, HEAD_KB = 8, CONT_KB = 8, PARALLEL = 10;
+  // 連続する小ブロックをまとめて取得する計画を立てる
+  const tasks = [];
+  let run = null;
+  for (const bid of sorted) {
+    const kb = sizeOf.get(bid);
+    if (kb <= SMALL_KB) {
+      if (run && run.endBid === bid) { run.kb += kb; run.endBid = bid + kb; run.bids.push(bid); }
+      else { run = { startBid: bid, endBid: bid + kb, kb, bids: [bid] }; tasks.push(run); }
+    } else {
+      tasks.push({ big: true, bid, kb }); run = null;
+    }
+  }
+  const entries = [];
+  let done = 0;
+  async function runTask(t) {
+    if (!t.big) {
+      const base = h.data_start + 1024 * t.startBid;
+      const chunk = await reader.read(base, 1024 * t.kb);
+      for (const bid of t.bids) {
+        const rel = 1024 * (bid - t.startBid);
+        await PDIC.parseBlock(h.data_start + 1024 * bid, chunk.subarray(rel),
+          async () => { throw new Error("small block overrun"); }, e => entries.push(e));
+      }
+    } else {
+      const base = h.data_start + 1024 * t.bid;
+      const first = await reader.read(base, 1024 * HEAD_KB);
+      await PDIC.parseBlock(base, first,
+        absOff => reader.read(absOff, 1024 * CONT_KB), e => entries.push(e));
+    }
+    done++;
+    onProgress(`辞書を取得中… ${entries.length} 項目`, 0.05 + 0.9 * done / tasks.length);
+  }
+  const queue = tasks.slice();
+  await Promise.all(Array.from({ length: PARALLEL }, async () => {
+    while (queue.length) await runTask(queue.shift());
+  }));
+  if (entries.length !== h.nword)
+    console.warn(`項目数不一致: parsed=${entries.length} header=${h.nword}`);
+  return { entries, reader };
+}
+
+/* ==================== 3. 文字処理 ==================== */
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+                  .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+
+/* ヴェフィス語の綴りはアクセント記号(é ç ö ĥ ĵ 等)を用いる。検索では
+   記号なしでも引けるよう、ラテン文字の付加記号だけを落とした形も使う。
+   NFDでの一括処理は日本語の濁点まで分解してしまうため、明示的な対応表を使う。
+   対象は辞書データに実際に現れる文字(語源行の他言語転写 ĕ ī ū ḍ ṣ を含む)。
+   辞書の更新で新しい文字が入ったらここに足す。 */
+const DEACC = {"à":"a","á":"a","ä":"a","ç":"c","è":"e","é":"e","ĕ":"e","ĥ":"h",
+  "í":"i","ī":"i","ĵ":"j","ó":"o","ö":"o","ü":"u","ū":"u","ḍ":"d","ṣ":"s"};
+const deacc = s => s.replace(/[^\x00-\x7f]/g, c => DEACC[c] !== undefined ? DEACC[c] : c);
+/* 表示用。大文字にも効かせる(É→E)。検索側の deacc は索引の形を変えないため小文字だけでよい */
+const deaccUp = s => s.replace(/[^\x00-\x7f]/g, c => {
+  const d = DEACC[c.toLowerCase()];
+  return d === undefined ? c : (c === c.toLowerCase() ? d : d.toUpperCase());
+});
+/* ヴェフィス語の綴りを出すときは必ずこれを通す。
+   ヴェフィス文字表示のときは字体にアクセント記号付きの字が無いので記号を外す。
+   検索・索引・パーマリンクは元の綴り(é は é のまま)を使うので影響しない。 */
+let FONT_ON = false;
+const vf = s => '<span class="vf">' + esc(FONT_ON ? deaccUp(s) : s) + "</span>";
+
+/* ヴェフィス語の è は é に統合された(正書法改定)。辞書データが古い綴りでも
+   取り込み時に é へ揃える。ただし語源行には他言語(.li 等)の語が混ざるので、
+   言語タグ .ve が付く語源(ヴェフィス語)だけを置換し、他言語の è は残す */
+const unifyE = s => s.replace(/è/g, "é").replace(/È/g, "É");
+/* 語源行の判定。renderInline の装飾と同じ形を使う */
+const ETY_LINE = /^\d{6,8}[*＊]/;
+/* 語源行の言語タグ無しの語源のうち、ヴェフィス語と確認できたもの。
+   meièhulangè(éinyeの項)は言語が分からないため手を付けない */
+const ETY_VE = ["andaisèvair", "andusèvair", "falè", "raddiefèhon"];
+function unifyText(t) {
+  return String(t).split(/\r\n?|\n/).map(line => {
+    if (ETY_LINE.test(line.trim())) {
+      line = line.replace(/(\([^()]*\)|[^\s<>():,、]+)(?=\.ve\b)/g, unifyE);
+      for (const w of ETY_VE) line = line.split(w).join(unifyE(w));
+      return line;
+    }
+    return unifyE(line);                            // 本文・用例はすべてヴェフィス語扱い
+  }).join("\n");
+}
+
+const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/* 検索語 → 正規表現の断片。素の文字はアクセント記号付きの変種にも当たる文字クラスに
+   広げ、記号付きで明示された文字(é ĵ ö 等)はその文字のままにする。
+   これで「e」は e/é の両方に当たり、「é」は é にだけ当たる。 */
+const FLEX = (() => {
+  const rev = {};                               // 素の文字 → 自分+変種の並び
+  for (const [acc, base] of Object.entries(DEACC)) rev[base] = (rev[base] || base) + acc;
+  return q => Array.from(q).map(ch => rev[ch] ? "[" + rev[ch] + "]" : escRe(ch)).join("");
+})();
+
+/* ==================== 4. 辞書モデル ==================== */
+/* WORDS: 検索も表示もこの1本を見る。1語のフィールド:
+ *   データ    h=見出し語 k=PDIC検索キー t=訳文 p=発音欄 e=用例 iL=画像{off,len}
+ *   検索索引  hl=hの小文字 hk=kの小文字 hs=記号もアポストロフィも落とした形
+ *             gl=訳語行(小文字) full=全文(小文字)
+ *   変化形    fk=綴り fl=小文字 fLab=変化形の名前 fSrc=その形を出した品詞行の目印
+ * 改行は取り込み時に \n へ統一し、以降の層では正規化しない。 */
+let WORDS = [];
+
+function buildWords(entries) {
+  const words = entries.map(src => {
+    const w = { h: unifyE(src.headword), k: unifyE(src.keyword), t: unifyText(src.translation) };
+    if (src.pron.length) w.p = src.pron;
+    if (src.examples.length) w.e = src.examples.map(unifyText);
+    w.hl = w.h.toLowerCase();
+    w.hk = w.k.toLowerCase();
+    w.hs = deacc(w.hl).replace(/['’\-]/g, "");
+    // 訳語 = 品詞タグ【…】で始まる行のみ(語源行・[文化]・[語法]等の散文は全文でのみ対象)
+    w.gl = w.t.split("\n").filter(l => l.trimStart().startsWith("【")).join("\n").toLowerCase();
+    w.full = (w.h + "\n" + w.k + "\n" + w.t + "\n" +
+              (w.e || []).join("\n") + "\n" + (w.p || []).join("\n")).toLowerCase();
+    // 変化形の索引(コードが読めない語があっても構築全体は止めない)
+    w.fk = []; w.fl = []; w.fLab = []; w.fSrc = [];
+    let forms = null;
+    try { forms = CONJ.formsOf(w.h, w.t); } catch (e) {}
+    if (forms) for (const [f, v] of forms) {
+      w.fk.push(f); w.fl.push(f.toLowerCase());
+      w.fLab.push(v.labels.join("・")); w.fSrc.push(v.srcs);
+    }
+    return w;
+  });
+  words.sort((a, b) => {
+    const x = a.hk || a.hl, y = b.hk || b.hl;
+    return x < y ? -1 : x > y ? 1 : (a.h < b.h ? -1 : 1);
+  });
+  return words;
+}
+
+/* ==================== 5. 検索 ==================== */
+/* 見出し語用: 語全体で判定 */
+function matcher(query, mode) {
+  const p = FLEX(query);
+  const re = new RegExp(mode === "exact" ? "^" + p + "$" : mode === "prefix" ? "^" + p : p);
+  return s => re.test(s);
+}
+/* 訳語・全文用: テキスト中の「語」として一致させる。
+   ラテン文字・数字で始まる/終わる検索語は単語境界(非[a-z0-9'])を要求し、
+   日本語などはそのままの出現で一致する。 */
+function textMatcher(query, mode) {
+  const p = FLEX(query);
+  if (mode === "partial") { const re = new RegExp(p); return s => re.test(s); }
+  const W = "[a-z0-9']";
+  const lb = /^[a-z0-9']/.test(query) ? "(?<!" + W + ")" : "";
+  const rb = /[a-z0-9']$/.test(query) ? "(?!" + W + ")" : "";
+  const re = new RegExp(mode === "exact" ? lb + p + rb : lb + p);   // prefix: 語頭のみ要求
+  return s => re.test(s);
+}
+
+/* 検索の結果: { words, infl }
+ *   words … 一致した語。見出し語・訳語で当たったものが先、変化形でしか
+ *           当たらないものが後ろに並ぶ。
+ *   infl  … 変化形でだけ当たった語 → 当たった変化形の添字(w.fk等への)。 */
+function search(query, scope, mode, useInfl) {
+  query = unifyE(query);                        // è は廃止: 古い綴りの入力も é として引く
+  const infl = new Map();
+  // 訳語だけを探すときは語形の話ではないので変化形は見ない
+  const wantInfl = !!useInfl && scope !== "trans";
+
+  /* headTest(w)で当てて、外れたらinflTest(綴り小文字→bool)で変化形を当てる */
+  function collect(directHit, formTest) {
+    const direct = [], byForm = [];
+    for (const w of WORDS) {
+      if (directHit(w)) { direct.push(w); continue; }
+      if (!wantInfl) continue;
+      const i = w.fl.findIndex(formTest);
+      if (i >= 0) { infl.set(w, i); byForm.push(w); }
+    }
+    return { words: direct.concat(byForm), infl };
+  }
+
+  if (mode === "regex") {                       // 正規表現は綴りのまま(記号を含む形)に適用
+    const re = new RegExp(query, "i");
+    const formTest = l => re.test(l);
+    if (scope === "head")  return collect(w => re.test(w.hl) || re.test(w.hk), formTest);
+    if (scope === "trans") return collect(w => re.test(w.gl));
+    if (scope === "full")  return collect(w => re.test(w.full), formTest);
+    return collect(w => re.test(w.hl) || re.test(w.hk) || re.test(w.gl), formTest);
+  }
+
+  const q = query.toLowerCase(), qd = deacc(q), qs = qd.replace(/['’\-]/g, "");
+  // FLEXにより「素の文字は変種にも当たり、明示した記号付き文字はその文字だけに当たる」。
+  // 別軸の寛容さ(記号除去形のPDICキー・アポストロフィを落とした形)は、
+  // 記号付き文字を含まない入力のときにだけ使う
+  const strict = q !== qd;
+  const m = matcher(q, mode), md = matcher(qd, mode), ms = matcher(qs, mode);
+  const headHit = strict ? w => m(w.hl)
+                         : w => m(w.hl) || md(w.hk) || ms(w.hs);
+  const tm = textMatcher(q, mode);
+  const formTest = l => m(l);
+  if (scope === "head")  return collect(headHit, formTest);
+  if (scope === "trans") return collect(w => tm(w.gl));
+  if (scope === "full")  return collect(w => tm(w.full), formTest);
+  return collect(w => headHit(w) || tm(w.gl), formTest);
+}
+
+/* ==================== 6. 発音 ====================
+ * 典拠: 四代目リパライン語 文法「発音」（sites.google.com/site/4tvalipan/wen-fa、
+ *       Web Archive 2020-10-09 版）。綴りから発音(IPA)を機械的に組み立てる。
+ *   要点: é/ĵ/ĥ は無音（é は前後の s,t,k を読ませる）。音節尾の s,t,k は読まない。
+ *         ai=/ɛ/ ei=/aj/ oi=/wa/ au,eu=/oː/ ou=子音の前で/u/・母音の前で/w/。
+ *         同じ子音字が続いても促音にならない。母音の長短の対立は無い。
+ *   辞書の発音欄は人手の転記で揺れがある（air, 語末の l, 長音など）ので、
+ *   ここで作るものはあくまで規則通りの目安。 */
+const PRON = (() => {
+  /* 多文字のつづり字。長いものから試す。型: C=子音 V=母音 E=e OU=ou M=無音 */
+  const GRAPHS = [
+    ["néh","ɲ","C"], ["éh","j","C"], ["çh","ʂ","C"], ["ch","ʃ","C"],
+    ["fh","ɸ","C"], ["th","t","C"], ["dh","d","C"],
+    ["aiy","ɛj","V"], ["ai","ɛ","V"], ["ei","aj","V"],
+    ["au","oː","V"], ["eu","oː","V"], ["ou","","OU"], ["oi","wa","V"],
+    ["ie","ie","V"], ["oa","ɔ","V"], ["ö","ø","V"],
+  ];
+  const SINGLE = {
+    p:["p","C"], b:["b","C"], t:["t","C"], d:["d","C"], k:["k","C"], g:["g","C"],
+    q:["k","C"], m:["m","C"], n:["n","C"], f:["f","C"], v:["v","C"],
+    s:["s","C"], c:["s","C"], z:["t͡s","C"], x:["x","C"], h:["h","C"],
+    w:["w","C"], j:["d͡ʒ","C"], l:["l","C"], r:["ʁ","C"],
+    a:["a","V"], i:["i","V"], u:["u","V"], o:["o","V"], y:["y","V"],
+    e:["ə","E"], "é":["","M"], "ĵ":["","M"], "ĥ":["","M"],
+  };
+  /* 黙字になりうる子音(音節尾で読まない)。th/dh も音価はt/dなので同じ扱い */
+  const DROP = { s:1, t:1, k:1, th:1, dh:1 };
+
+  function tokenize(word) {
+    let w = word.toLowerCase().replace(/[!?.,、。 ]/g, "").replace(/’/g, "'");
+    // アクセント記号付き母音は「読みを分けて読む」= 二重母音を作らない。素の母音に落とす
+    w = w.replace(/è/g, "é").replace(/[àáä]/g, "a").replace(/í/g, "i")
+         .replace(/ó/g, "o").replace(/ü/g, "y");
+    w = w.replace(/([bcdfghjklmnpqrstvwxz])\1+/g, "$1");   // 促音にならないので畳む
+    const toks = [];
+    let i = 0;
+    outer: while (i < w.length) {
+      if (w[i] === "'") { i++; continue; }                 // アポストロフィは区切りのみ
+      for (const [sp, ipa, type] of GRAPHS) {
+        if (w.startsWith(sp, i)) {
+          toks.push({ sp, ipa, type }); i += sp.length; continue outer;
+        }
+      }
+      const s1 = SINGLE[w[i]];
+      toks.push(s1 ? { sp: w[i], ipa: s1[0], type: s1[1] } : { sp: w[i], ipa: w[i], type: "C" });
+      i++;
+    }
+    return toks;
+  }
+
+  function pron(word) {
+    const toks = tokenize(word);
+    let out = "";
+    for (let i = 0; i < toks.length; i++) {
+      const t = toks[i], next = toks[i + 1] || null;
+      const nextType = next ? next.type : "";
+      const nextVowel = nextType === "V" || nextType === "E" || nextType === "OU";
+      if (t.type === "M") continue;                        // 無音
+      if (t.type === "OU") {                               // ou: 母音の前ではw
+        out += nextVowel ? "w" : "u"; continue;
+      }
+      if (t.type === "E") {                                // e: aiの音節の次ではエ
+        const p1 = toks[i - 1], p2 = toks[i - 2];
+        out += (p1 && p1.type === "C" && p2 && p2.sp === "ai") ? "e"
+             : (p1 && p1.sp === "y" && p2 && p2.type === "C") ? "i"   // 子音+ye
+             : "ə";
+        continue;
+      }
+      if (t.type === "C" && DROP[t.sp] && i > 0) {         // 音節尾のs,t,kは読まない(語頭は音節尾になり得ない)
+        // 次が発音される母音なら読む。é(とそれを含むéh等)は無音でも直前の子音を読ませる
+        if (!next || !(nextVowel || next.sp.includes("é"))) continue;
+      }
+      out += t.ipa;
+    }
+    return out;
+  }
+
+  return { pron };
+})();
+
+/* ==================== 7. 活用・変化 ====================
+ * 典拠: 「シャリヤと翠のヴェフィス語教室」名詞編(1)(2)・動詞編(1)(2)（Migdal, Fafs F. Sashimi）
+ *       および 四代目リパライン語 文法（形容詞変化）
+ *   辞書の品詞タグに続く「単語コード」から変化形を機械的に生成する。コードの読み方:
+ *     クラス名 + Ⅰ/Ⅱ(二種類ある変化のどちらか) + 各格・各変化形の例外
+ *     L, Ls    … カッコ内の文字が付く。Lのあとに文字があるときはその文字のカッコだけ
+ *     As, Cé…  … その格にカッコ内の文字が付く
+ *     C-euns   … カッコに無いものは語幹に直接くっつける
+ *     DⅠ, C2   … その変化形だけ別のローマ数字の変化をする
+ *     1〜3      … 動詞E(行動存在)の三つの変化のどれを使うか
+ *     (B-es)   … Bがその語尾になることもある(併記する)
+ *     =até,    … 取り除いたものが語幹になる
+ * 公開API: formsOf(検索索引用) / panel(表示用)
+ * ==================================================== */
+const CONJ = (() => {
+  /* 語幹(√) = 最後の母音と最後の子音を取ったもの。
+     ai, ei, au, eu, ou, oi は一つの母音として扱う（fais → √f-, nai → √n-）。
+     é は黙字だがここでは母音として扱う。 */
+  const VU = ["ai", "ei", "au", "eu", "ou", "oi"];
+  const VOW = "aiueoyèéêöüàáâäìíòóùú";
+  const isVowel = c => VOW.includes(c);
+  const endsWithConsonant = s => s.length > 0 && !isVowel(s[s.length - 1].toLowerCase());
+
+  function splitStem(word, tail, cls) {
+    if (cls === "ailie" && /ailie$/i.test(word) && word.length > 5)
+      return { stem: word.slice(0, -5), ending: word.slice(-5) };   // Ailieは-ailieごと抜く
+    if (tail && word.length > tail.length &&
+        deacc(word.toLowerCase()).endsWith(deacc(tail.toLowerCase())))
+      return { stem: word.slice(0, -tail.length), ending: word.slice(-tail.length) };
+    let i = word.length;
+    while (i > 0 && !isVowel(word[i - 1].toLowerCase())) i--;   // 最後の子音
+    let j = i;
+    for (const v of VU) if (word.slice(0, i).toLowerCase().endsWith(v)) { j = i - v.length; break; }
+    if (j === i) j = i - 1;                                     // 最後の母音
+    if (j < 0) j = 0;
+    return { stem: word.slice(0, j), ending: word.slice(j) };
+  }
+
+  /* 変化表。"/"はⅠ/Ⅱ、"|"は動詞Eの1〜3、"( )"はコードで指定されると入る文字、
+     "@"は辞書形そのまま、"(x)"は語尾の子音、"(a)"は語幹が子音で終わるときだけ入るa。 */
+  const NOUN = {
+    fa:     { A:"-ai(s)",        B:"-aut", C:"-eun(é)",         D:"-el(é)",  E:"-ai",   F:"@", G:"-aits" },
+    nai:    { A:"-e(s)/-oi(né)", B:"-aut", C:"-eun(é)/-oui(r)", D:"-oul(é)", E:"-aile", F:"@", G:"-ets/-oits" },
+    jer:    { A:"-e(s)/-oi(s)",  B:"-eit", C:"-ein(é)/-oui(r)", D:"-eiu(s)", E:"-aile", F:"@", G:"-ets/-oits" },
+    feiaus: { A:"-ai",           B:"-ait", C:"-ain",            D:"-ailé",   E:"-aile", F:"@", G:"-aits" },
+  };
+  const VFGN = { F:"-(a)meis", G:"-(a)mais", N:"-(a)ché!" };      // 三クラス共通
+  const VERB = {
+    fais:  { A:"-ai(s)",    B:"-ei(s)/-eu(s)",       C:"-aisé",     D:"-ede(s)/-edou(s)",  E:"-aide|-aiou|-ais",       ...VFGN },
+    pa:    { A:"@(s)",      B:"-ais",                C:"-aisé/-e(s)", D:"-aide(s)/-aidé(n)", E:"-edos|-eou|-eous",     ...VFGN },
+    ailie: { A:"-ailie(s)", B:"-eilie(s)/-eulie(s)", C:"-aisélie",  D:"-edélie(s)",        E:"-aidélie|-aiylie|-alie", ...VFGN },
+  };
+  const ADJ = {
+    se:  { a:"@", b:"-oi(x)", c:"-oin(x)", d:"-oua" },
+    fi:  { a:"-ai(x)", b:"-ou(x)", c:"-oui(x)", d:"-oua" },
+    fei: { a:"-ais", b:"-ais", c:"-oues", d:"-ouais" },
+  };
+  const KIND_OF_CLASS = {};
+  for (const k of Object.keys(NOUN)) KIND_OF_CLASS[k] = "noun";
+  for (const k of Object.keys(VERB)) KIND_OF_CLASS[k] = "verb";
+  for (const k of Object.keys(ADJ))  KIND_OF_CLASS[k] = "adj";
+  KIND_OF_CLASS["enoulé"] = "enoule";
+
+  /* 各変化形の名前。キーの並びが表の行の並びでもある */
+  const LABEL = {
+    noun: { A:"A 指格", B:"B 属格", C:"C 奪格", D:"D 向格", E:"E 対格", F:"F 主格", G:"G 前置格" },
+    verb: { A:"A 現在一人称", B:"B 現在二人称", C:"C 現在三人称", D:"D 完了",
+            E:"E 行動存在", F:"F 起動", G:"G 不定人称", N:"N 伝統命令" },
+    adj:  { a:"生物を修飾", b:"無生物を修飾", c:"比較", d:"最上級" },
+  };
+  const CLASS_NAME = { fa:"Faクラス", nai:"Naiクラス", jer:"Jerクラス", feiaus:"Feiausクラス",
+    fais:"Faisクラス", pa:"Paクラス", ailie:"Ailieクラス",
+    se:"Seクラス", fi:"Fiクラス", fei:"Feiクラス", "enoulé":"Enouléクラス" };
+  const KIND_NAME = { noun:"名詞変化", verb:"動詞変化", adj:"形容詞変化", enoule:"形容詞変化" };
+
+  /* 完全不規則: 存在動詞・繋辞 es */
+  const IRREGULAR = {
+    es: { kind:"verb", rows:[["A 現在一人称",["sans"]],["B 現在二人称",["sail"]],
+      ["C 現在三人称",["est"]],["D 完了",["ésta"]],["E 行動存在",["sel"]],["F 起動",["chouais"]]] },
+  };
+
+  /* ---- 単語コードの解析 ---- */
+  const CLASSES = ["feiaus","fais","ailie","enoulé","nai","jer","fa","pa","se","fi","fei"];
+  const emptyCode = () => ({ cls: null, roman: 1, all: false, cases: {}, eVar: null,
+                             tail: null, alt: new Set() });
+  function parseCode(raw) {
+    let s = raw.replace(/[Ａ-Ｚａ-ｚ０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+    s = s.replace(/[Ⅰⅰ]/g, "I").replace(/[Ⅱⅱ]/g, "II").replace(/è/g, "é");
+    const out = emptyCode();
+    // (B-es) のような括弧は「そうなることもある」という併記の指定
+    s = s.replace(/[（(]\s*([A-GN][^)）]*)[）)]/g, (m, inner) => { out.alt.add(inner[0]); return inner; });
+    s = s.replace(/[（()）]/g, "");
+    for (const seg of s.split(/[,、]/).map(x => x.trim()).filter(Boolean)) {
+      let t = seg;
+      if (t.startsWith("=")) { out.tail = t.slice(1); continue; }
+      // クラス名の直後に小文字が続く場合はクラス名ではない(falte, fain= 等)
+      const cm = CLASSES.find(c => t.toLowerCase().startsWith(c) && !/^[a-zà-ÿ]/.test(t.slice(c.length)));
+      if (cm) { out.cls = cm; t = t.slice(cm.length); }
+      else if (!/^[A-GNL]/.test(t)) continue;   // 続きの格指定でもない
+      if (t.startsWith("=")) { const m = /^=([^A-GNI0-9]*)/.exec(t); out.tail = m[1]; t = t.slice(m[0].length); }
+      let i = 0;
+      while (i < t.length) {
+        const ch = t[i];
+        if (ch === "L") {                    // カッコ内の文字が付く
+          out.all = true; i++;
+          const m = /^[a-zà-ÿ'’]+/.exec(t.slice(i));   // Ls, Lé … その文字のカッコだけ
+          if (m) { out.allLetter = m[0]; i += m[0].length; }
+          continue;
+        }
+        if (/[a-zà-ÿ]/.test(ch)) {           // L に付かない裸の文字は指定とみなさない
+          const m = /^[a-zà-ÿ'’]+/.exec(t.slice(i));
+          i += m[0].length; continue;
+        }
+        if (/[A-GN]/.test(ch)) {             // 格・変化形の指定
+          i++; const spec = {};
+          if (t[i] === "-" || t[i] === "=") {
+            i++; const m = /^[^A-GNI0-9,]*/.exec(t.slice(i));
+            spec.full = m[0]; i += m[0].length;
+          } else {
+            const rm = /^(II|I|2|1)/.exec(t.slice(i));
+            if (rm) { spec.roman = (rm[0] === "II" || rm[0] === "2") ? 2 : 1; i += rm[0].length; }
+            const pm = /^[a-zà-ÿ'’]+/.exec(t.slice(i));
+            if (pm) { spec.paren = pm[0]; i += pm[0].length; }
+          }
+          out.cases[ch] = spec; continue;
+        }
+        if (t.startsWith("II", i)) { out.roman = 2; i += 2; continue; }
+        if (ch === "I") { out.roman = 1; i++; continue; }
+        if (/[0-9]/.test(ch)) { out.eVar = +ch; i++; continue; }
+        i++;                                 // 読めない文字は無視
+      }
+    }
+    return out;
+  }
+
+  /* ---- 語尾からのクラス推定（コードが無い語用） ---- */
+  function splitEnding(word) {
+    const { ending } = splitStem(word, null, null);
+    const m = /^([^bcdfghjklmnpqrstvwxzçĥĵ]*)(.*)$/i.exec(ending);
+    return { v: (m[1] || "").toLowerCase(), c: (m[2] || "").toLowerCase() };
+  }
+  function inferClass(kind, word) {
+    const l = word.toLowerCase(), { v, c } = splitEnding(word);
+    if (kind === "noun") {                       // Fa:a / Nai:i,ai,e(+子音) / Jer:e,é(+子音)
+      if (v === "a" && !c) return "fa";
+      if (v === "i" || v === "ai") return "nai";
+      if (v === "e") return c ? "jer" : "nai";
+      if (v === "é" || v === "è") return "jer";
+      return "feiaus";
+    }
+    if (kind === "verb") {                       // Fais:-ai(子音) / Ailie:-ailie / Pa:それ以外
+      if (/ailie$/.test(l)) return "ailie";
+      return v === "ai" ? "fais" : "pa";
+    }
+    if (kind === "adj") {                        // Se:-e(子音),-ais,-é(子音) / Fi:-i,-ai(+s以外) / Fei:他
+      if (/ais$/.test(l)) return "se";
+      if (v === "e" || v === "é" || v === "è") return "se";
+      if (v === "i") return "fi";
+      if (v === "ai" && c && c !== "s") return "fi";
+      return "fei";
+    }
+    return null;
+  }
+
+  /* ---- 変化形の生成 ---- */
+  function fillParen(tmpl, resolve) {
+    return tmpl.replace(/\(([^)]*)\)/g, (m, inner) => resolve(inner));
+  }
+  function pickRoman(cell, roman) {
+    const p = cell.split("/");
+    return p.length > 1 ? p[Math.min(roman, p.length) - 1] : p[0];
+  }
+  function build(kind, cls, code, headword) {
+    const table = kind === "noun" ? NOUN[cls] : kind === "verb" ? VERB[cls] : ADJ[cls];
+    if (!table) return null;
+    const { stem, ending } = splitStem(headword, code.tail, cls);
+    // カッコの中身は、その格に As/Cé のような指定があるときか、L のときだけ付く。
+    // Ls, Lé のように L に文字が続くときは、その文字のカッコだけが付く（jerⅠLs なら
+    // -e(s)→-es, -eiu(s)→-eius は付くが -ein(é) は付かない）。
+    const allResolve = !code.all ? (() => "")
+      : code.allLetter
+        ? (inner => inner.toLowerCase() === code.allLetter.toLowerCase() ? inner : "")
+        : (inner => inner);
+    const cons = (ending.match(/[bcdfghjklmnpqrstvwxzçĥĵ]+$/i) || [""])[0];
+
+    function realize(tmpl, spec) {
+      let base = stem;
+      let t = tmpl;
+      if (t.startsWith("@")) { base = headword; t = t.slice(1); }   // 辞書形そのまま
+      t = t.replace(/^-/, "");
+      t = t.replace(/^\(a\)/, endsWithConsonant(base) ? "a" : "");  // 語幹が子音で終わるときだけa
+      if (kind === "adj") t = t.replace(/\(x\)/g, cons);
+      t = fillParen(t, spec.paren !== undefined ? (() => spec.paren) : allResolve);
+      return base + t;
+    }
+    const rows = [];
+    for (const key of Object.keys(LABEL[kind])) {
+      const spec = code.cases[key] || {};
+      const alt = code.alt.has(key);
+      let forms = [];
+      if (spec.full === undefined || alt) {
+        let variants = pickRoman(table[key], spec.roman || code.roman).split("|");
+        if (code.eVar && variants.length > 1) variants = [variants[code.eVar - 1] || variants[0]];
+        forms = variants.map(v => realize(v, alt ? {} : spec));
+        if (kind === "noun" && key === "F") forms.push(headword + "sé");   // 辞書形か辞書形+sé
+      }
+      if (spec.full !== undefined) forms.push(stem + spec.full);
+      rows.push([LABEL[kind][key], [...new Set(forms)]]);
+    }
+    return { rows, stem, ending };
+  }
+
+  /* ---- Enouléクラス（語尾から判別できない特殊変化） ---- */
+  function enouleRows(word) {
+    const w = word, last = w.slice(-1).toLowerCase();
+    const vfinal = isVowel(last);
+    const nomSg = vfinal ? w + "d"
+      : last === "t" ? w.slice(0, -1) + "d"
+      : "lnr".includes(last) ? w + "d" : w + "ed";
+    const nomPl = vfinal ? w + "sd" : w + "séd";
+    const genSg = w.replace(/t$/, "z").replace(/k$/, "çh") + "en";
+    const genPl = /[cs]$/.test(w) ? w + "sens" : w + "sen";
+    return [["主格・その他（単数）", [nomSg]], ["主格・その他（複数）", [nomPl]],
+            ["対格（単数）", [nomSg + "i"]], ["対格（複数）", [nomPl + "i"]],
+            ["属格（単数）", [genSg]], ["属格（複数）", [genPl]]];
+  }
+
+  /* ---- 品詞 → 変化の種類 ---- */
+  const POS_KIND = { "名詞":"noun", "動詞":"verb", "他動詞":"verb", "自動詞":"verb",
+    "分離動詞":"verb", "自・他動詞":"verb", "形容詞":"adj" };
+  const NO_INFLECT = ["自非変動詞","他非変動詞","非変化動詞","非変化分離動詞","副詞","前置詞","接続詞","間投詞","感動詞"];
+  /* 品詞タグ【…】と単語コード[…]で始まる行。表示(renderTranslation)と索引(formsOf)で共用 */
+  const POS_LINE = /^\s*【([^】\n]{1,12})】\s*(?:\[([^\]\n]{1,60})\])?/;
+  /* 変化表を開く際に「どの品詞行の表か」を突き合わせる目印 */
+  const lineKey = (pos, code) => pos + " " + (code || "");
+
+  /* ---- 見出し語＋品詞＋コード → 変化表のもと ---- */
+  function analyze(headword, pos, codeRaw) {
+    if (NO_INFLECT.includes(pos)) return null;
+    let kind = POS_KIND[pos];
+    if (!kind) return null;
+    const irr = IRREGULAR[headword.toLowerCase()];
+    const code = codeRaw ? parseCode(codeRaw) : emptyCode();
+    let cls = code.cls, inferred = false;
+    if (cls && KIND_OF_CLASS[cls]) kind = KIND_OF_CLASS[cls];   // コードのクラスを優先
+    if (!cls) { cls = inferClass(kind, headword); inferred = true; }
+    if (!cls) return null;
+
+    let rows, stem = "", ending = "";
+    if (irr) { rows = irr.rows; }
+    else if (kind === "enoule") { rows = enouleRows(headword); }
+    else {
+      const b = build(kind, cls, code, headword);
+      if (!b) return null;
+      rows = b.rows; stem = b.stem; ending = b.ending;
+    }
+    return { rows, stem, ending, kind, cls, code, inferred, irr: !!irr };
+  }
+
+  /* ---- 訳文にある【品詞】[コード]をすべて拾い、変化形 → 変化形の名前 を返す ----
+   * 一つの見出し語が名詞と動詞を兼ねることがあるので、行ごとに別の表を作って束ねる。
+   * 見出し語と同じ形は入れない（見出し語そのもので拾えるため）。 */
+  function formsOf(headword, translation) {
+    const out = new Map();                        // 変化形(綴りのまま) → {labels, srcs}
+    const done = new Set();
+    const hw = headword.toLowerCase();
+    for (const line of String(translation).split("\n")) {
+      const m = POS_LINE.exec(line);
+      if (!m) continue;
+      const key = lineKey(m[1], m[2]);
+      if (done.has(key)) continue;                // 同じ品詞・同じコードの行は一度だけ
+      done.add(key);
+      let a;
+      // コードが読めない語で辞書全体の構築を止めない
+      try { a = analyze(headword, m[1], m[2]); } catch (e) { continue; }
+      if (!a) continue;
+      for (const [label, forms] of a.rows) {
+        for (const f of forms) {
+          if (!f || f.toLowerCase() === hw) continue;
+          let v = out.get(f);
+          if (!v) out.set(f, v = { labels: [], srcs: [] });
+          if (!v.labels.includes(label)) v.labels.push(label);
+          if (!v.srcs.includes(key)) v.srcs.push(key);   // どの品詞の行から出た形か
+        }
+      }
+    }
+    return out;
+  }
+
+  /* ---- パネルのHTML ---- */
+  function panel(headword, pos, codeRaw) {
+    const a = analyze(headword, pos, codeRaw);
+    if (!a) return null;
+    const { rows, stem, ending, kind, cls, code, inferred, irr } = a;
+
+    const head = (irr ? "完全不規則" : (CLASS_NAME[cls] || cls) +
+        (kind !== "adj" && kind !== "enoule" ? "・" + (code.roman === 2 ? "Ⅱ" : "Ⅰ") : "")) +
+      (inferred && !irr ? "（語尾からの推定）" : "");
+    let h = '<div class="conj" hidden><div class="chead">' + esc(KIND_NAME[kind]) + " — " + esc(head);
+    if (stem) h += '<span class="cstem">語幹 √' + vf(stem) + "-（語尾 -" + vf(ending) + "）</span>";
+    if (codeRaw) h += '<span class="ccode">[' + esc(codeRaw) + "]</span>";
+    h += "</div><table class=\"ctab\"><tbody>";
+    for (const [label, forms] of rows)
+      h += "<tr><th>" + esc(label) + "</th><td>" + forms.map(f =>
+        vf(f) + ' <span class="cpron">/' + esc(PRON.pron(f)) + "/</span>").join(" / ") + "</td></tr>";
+    h += "</tbody></table></div>";
+    return h;
+  }
+
+  return { formsOf, panel, POS_LINE, lineKey };
+})();
+
+/* ==================== 8. 表示 ==================== */
+/* 検索語のハイライト。素の文字で検索しても記号付きの一致箇所が光るよう、
+   検索と同じFLEXで正規表現を作る(正規表現モードの入力はそのままでは使えないため対象外) */
+function highlighter(query) {
+  return query ? new RegExp("(" + FLEX(unifyE(query.toLowerCase())) + ")", "gi") : null;
+}
+
+function renderInline(t, hi) {
+  let html = esc(t);
+  // URLをリンク化(別タブで開く)。末尾の和文句読点・閉じ括弧は除外する
+  html = html.replace(/https?:\/\/[^\s<>]+/g, m => {
+    const trimmed = m.replace(/[、。」』）＞]+$/, "");
+    const rest = m.slice(trimmed.length);
+    return '<a class="url" href="' + trimmed + '" target="_blank" rel="noopener noreferrer">' +
+           trimmed + "</a>" + rest;
+  });
+  // 【品詞】と、その直後に置かれる文法コード [naiⅡCrD-ouls] 等
+  html = html.replace(/(【[^】\n]{1,12}】)(\s*)(\[[^\]\n]{1,60}\])?/g,
+    (m0, pos, sp, code) => '<span class="pos">' + pos + "</span>" + sp +
+      (code ? '<span class="code">' + code + "</span>" : ""));
+  html = html.replace(/\[(語法|文化|語源|補足)\]/g, '<span class="usage">[$1]</span>');
+  // 語源行: 「20140928*achés.ve&lt;ashsim.li:秒」のように日付から始まる行
+  html = html.replace(/^(\d{6,8}[*＊].*)$/gm, '<span class="ety">$1</span>');
+  if (hi) {
+    html = html.split(/(<[^>]+>)/).map(seg =>
+      seg.startsWith("<") ? seg : seg.replace(hi, "<mark>$1</mark>")).join("");
+  }
+  return html;
+}
+
+/* openKeys: 変化形で引き当てたとき、その形を出した品詞行の目印(CONJ.lineKeyの列)。
+   名詞と動詞を兼ねる語もあるので、当たったほうの表だけを開く。 */
+function renderTranslation(t, hi, headword, openKeys) {
+  const lines = t.split("\n");
+  let out = "";
+  lines.forEach((line, i) => {
+    const nl = i < lines.length - 1 ? "\n" : "";
+    let panel = null, open = false;
+    if (headword) {
+      const m = CONJ.POS_LINE.exec(line);
+      if (m) {
+        panel = CONJ.panel(headword, m[1], m[2]);
+        open = !!panel && !!openKeys && openKeys.includes(CONJ.lineKey(m[1], m[2]));
+      }
+    }
+    if (open) panel = panel.replace('<div class="conj" hidden>', '<div class="conj">');
+    // パネルは改行のあとに置く。閉じているときは行が普通に流れ、
+    // 開くとその行と次の行の間にブロックとして現れる。
+    out += renderInline(line, hi) +
+      (panel ? ' <button class="conjbtn" type="button" aria-expanded="' + (open ? "true" : "false") +
+        '">' + (open ? "閉じる" : "活用") + "</button>" : "") +
+      nl + (panel || "");
+  });
+  return out;
+}
+
+const wordHash = h => "#w/" + encodeURIComponent(h);
+
+/* 1語の項目全体。inflIdx: 変化形で引き当てたときはその添字、それ以外は -1 */
+function entryHTML(w, hi, inflIdx) {
+  let h = '<article class="entry"><h2>' + vf(w.h);
+  if (w.p) h += '<span class="pron">/' + esc(w.p.join(", ")) + "/</span>";
+  else {
+    // 辞書に発音欄が無い語は読み規則からの生成で補う。目安である印に「?」を添える
+    const g = PRON.pron(w.h);
+    if (g) h += '<span class="pron pron-gen" title="辞書に発音欄が無いため、正書法の読み規則から補完した目安">/' +
+                esc(g) + "/<sup>?</sup></span>";
+  }
+  h += '<a class="plink" href="' + wordHash(w.h) +
+       '" data-plink="' + esc(w.h) + '" title="この単語へのリンク（クリックでURL反映・コピー）">リンク</a>';
+  h += "</h2>";
+  if (inflIdx >= 0)                               // 変化形で引き当てたときはその旨を添える
+    h += '<div class="fhit"><b>' + vf(w.fk[inflIdx]) + '</b> <span class="cpron">/' +
+         esc(PRON.pron(w.fk[inflIdx])) + "/</span> は " + vf(w.h) + " の " +
+         esc(w.fLab[inflIdx]) + "</div>";
+  h += '<div class="tl">' +
+       renderTranslation(w.t, hi, w.h, inflIdx >= 0 ? w.fSrc[inflIdx] : null) + "</div>";
+  for (const ex of w.e || []) h += '<div class="ex">' + renderTranslation(ex, hi) + "</div>";
+  return h + "</article>";
+}
+
+function pageNumbers(cur, last) {
+  // 1, …, cur-1, cur, cur+1, …, last の形に間引く
+  const s = new Set([1, last, cur - 1, cur, cur + 1]);
+  const nums = [...s].filter(n => n >= 1 && n <= last).sort((a, b) => a - b);
+  const out = [];
+  let prev = 0;
+  for (const n of nums) {
+    if (prev && n - prev > 1) out.push(null);   // null = "…"
+    out.push(n); prev = n;
+  }
+  return out;
+}
+
+/* ==================== 9. 検索UI ==================== */
+/* 表示中の結果。search()の戻りをそのまま持つ(inflは語→当たった変化形の添字) */
+const view = { list: [], infl: new Map(), page: 1 };
+
+const $ = id => document.getElementById(id);
+const checkedValue = name => document.querySelector(`input[name="${name}"]:checked`).value;
+
+function pageCount() { return Math.max(1, Math.ceil(view.list.length / PAGE)); }
+
+function renderPage(p, scroll) {
+  view.page = Math.min(Math.max(1, p), pageCount());
+  const hi = highlighter($("q").value.trim());
+  const slice = view.list.slice((view.page - 1) * PAGE, view.page * PAGE);
+  $("results").innerHTML = slice.map(w =>
+    entryHTML(w, hi, view.infl.has(w) ? view.infl.get(w) : -1)).join("");
+  const pager = $("pager");
+  if (view.list.length <= PAGE) { pager.innerHTML = ""; }
+  else {
+    const last = pageCount();
+    let h = '<button data-page="' + (view.page - 1) + '" aria-label="前のページ"' +
+            (view.page === 1 ? " disabled" : "") + '>&larr;</button>';
+    for (const n of pageNumbers(view.page, last)) {
+      h += n === null ? '<span class="gap">&hellip;</span>'
+        : '<button data-page="' + n + '"' + (n === view.page ? ' aria-current="page"' : "") + ">" + n + "</button>";
+    }
+    h += '<button data-page="' + (view.page + 1) + '" aria-label="次のページ"' +
+         (view.page === last ? " disabled" : "") + '>&rarr;</button>';
+    pager.innerHTML = h;
+  }
+  if (scroll) window.scrollTo({ top: 0 });
+}
+
+function runDict() {
+  const q = $("q").value.trim();
+  const scope = checkedValue("scope"), mode = checkedValue("mode");
+  const useInfl = $("useinfl").checked;
+  $("searcherr").innerHTML = "";
+  $("notice").innerHTML = "";
+  $("results").innerHTML = "";
+  view.list = []; view.infl = new Map();
+  if (q === "") {
+    // 未入力時は何も表示しない（ランダム表示はシャッフルボタンで明示的に）
+    $("count").textContent = "";
+    $("pager").innerHTML = "";
+    return;
+  }
+  try { ({ words: view.list, infl: view.infl } = search(q, scope, mode, useInfl)); }
+  catch (e) {
+    $("searcherr").innerHTML = '<div class="err">正規表現エラー: ' + esc(String(e.message)) + "</div>";
+    $("count").textContent = ""; $("pager").innerHTML = ""; return;
+  }
+  $("count").textContent = view.list.length + " 件" +
+    (view.infl.size ? "（うち変化形での一致 " + view.infl.size + " 件）" : "");
+  if (view.list.length === 0) {
+    $("results").innerHTML = '<div class="none">見つかりませんでした。検索方式を「部分一致」にするか、' +
+      (useInfl ? "対象を「全文」に広げてみてください。"
+               : "「変化形も探す」を入れてみてください。") + "</div>";
+    $("pager").innerHTML = "";
+    return;
+  }
+  renderPage(1, false);
+}
+
+function fisherYates(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* パーマリンク（#w/単語）。完全一致で引き、無ければ部分一致にフォールバック */
+function handleHash() {
+  const m = /^#w\/(.+)$/.exec(location.hash);
+  if (!m) return;
+  let term;
+  try { term = decodeURIComponent(m[1]); } catch (e) { return; }
+  $("q").value = term;
+  document.querySelector('input[name="scope"][value="head"]').checked = true;
+  document.querySelector('input[name="mode"][value="exact"]').checked = true;
+  runDict();
+  if (view.list.length === 0) {
+    document.querySelector('input[name="mode"][value="partial"]').checked = true;
+    runDict();
+    $("notice").innerHTML =
+      '<div class="fallback">「' + esc(term) + '」の完全一致がなかったため、部分一致で表示しています。</div>';
+  }
+  window.scrollTo({ top: 0 });
+}
+
+/* ---- イベント配線(検索まわりはここに集約) ---- */
+{
+  let timer = null;
+  $("q").addEventListener("input", () => {
+    clearTimeout(timer); timer = setTimeout(runDict, 120);
+  });
+  for (const el of document.querySelectorAll(
+      '#sec-dic input[type="radio"], #sec-dic input[type="checkbox"]:not(#usefont)'))
+    el.addEventListener("change", runDict);
+
+  /* 書体の切り替え。検索結果は変わらないので表示だけ作り直す。設定は次回にも引き継ぐ */
+  function applyFont(on) {
+    FONT_ON = on;
+    document.body.classList.toggle("vfont", on);
+    try { localStorage.setItem("vaifise-font", on ? "1" : "0"); } catch (e) {}
+    if (view.list.length) renderPage(view.page, false);
+  }
+  $("usefont").addEventListener("change", e => applyFont(e.target.checked));
+  try {
+    if (localStorage.getItem("vaifise-font") === "1") {   // 保存された設定の復元
+      $("usefont").checked = true;
+      FONT_ON = true;
+      document.body.classList.add("vfont");
+    }
+  } catch (e) { /* localStorageが使えない環境ではOFFのまま */ }
+
+  $("pager").addEventListener("click", e => {
+    const b = e.target.closest("button[data-page]");
+    if (b && !b.disabled) renderPage(parseInt(b.dataset.page, 10), true);
+  });
+
+  $("shuffle").addEventListener("click", () => {
+    if ($("q").value.trim() === "") {             // 未入力: ランダム50件を表示/引き直し
+      view.list = fisherYates(WORDS).slice(0, RANDOM_COUNT);
+      view.infl = new Map();
+      $("count").textContent = "ランダム表示 " + view.list.length + " 件";
+      $("notice").innerHTML = "";
+      renderPage(1, false);
+      return;
+    }
+    if (view.list.length < 2) return;
+    view.list = fisherYates(view.list);           // 検索結果の表示順をシャッフル
+    renderPage(1, false);
+  });
+
+  /* 結果内のクリック(パーマリンク・活用の開閉・画像ズーム) */
+  $("sec-dic").addEventListener("click", e => {
+    const pl = e.target.closest("a.plink");
+    if (pl && navigator.clipboard) {
+      const url = location.href.split("#")[0] + wordHash(pl.dataset.plink);
+      navigator.clipboard.writeText(url).then(() => {
+        const t0 = pl.textContent; pl.textContent = "コピーしました";
+        setTimeout(() => { pl.textContent = t0; }, 1200);
+      }).catch(() => {});
+      // hrefのデフォルト動作でハッシュも更新される
+    }
+    const cj = e.target.closest("button.conjbtn");
+    if (cj) {
+      const box = cj.nextElementSibling;          // 改行はテキストノードなので飛ばされる
+      if (box && box.classList.contains("conj")) {
+        box.hidden = !box.hidden;
+        cj.setAttribute("aria-expanded", String(!box.hidden));
+        cj.textContent = box.hidden ? "活用" : "閉じる";
+      }
+      return;
+    }
+  });
+
+  window.addEventListener("hashchange", handleHash);
+}
+
+/* ==================== 10. キャッシュと起動 ==================== */
+/* IndexedDBに生エントリ列を保存する。使えない環境(古いブラウザ・一部の
+   プライベートモード)では自動的に毎回ネットワーク読み込みにフォールバックする */
+function idb() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open("vaifise-dic", 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("kv");
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+async function cacheGet(key) {
+  try {
+    const db = await idb();
+    return await new Promise((res, rej) => {
+      const tx = db.transaction("kv").objectStore("kv").get(key);
+      tx.onsuccess = () => res(tx.result); tx.onerror = () => rej(tx.error);
+    });
+  } catch (e) { return null; }
+}
+async function cacheSet(key, val) {
+  try {
+    const db = await idb();
+    await new Promise((res, rej) => {
+      const tx = db.transaction("kv", "readwrite").objectStore("kv").put(val, key);
+      tx.onsuccess = res; tx.onerror = () => rej(tx.error);
+    });
+  } catch (e) { /* 保存できなくても動作には影響しない */ }
+}
+
+function applyEntries(entries, sourceNote, extra) {
+  WORDS = buildWords(entries);
+  $("stat").textContent = WORDS.length.toLocaleString() + " 項目";
+  $("datastatus").innerHTML =
+    esc(sourceNote + `（見出し語${WORDS.length}件）` + (extra || "")) +
+    ' <button id="refresh" class="cmore" style="margin:0 0 0 8px">最新に更新</button>';
+  $("refresh").addEventListener("click", () => bootLive(true));
+  if ($("q").value.trim() !== "") runDict();
+}
+
+async function bootLive(forceNetwork) {
+  const loading = $("loading"), msg = $("loadmsg"), bar = $("loadbarin"), err = $("loaderr");
+  loading.hidden = false; err.innerHTML = "";
+
+  if (!forceNetwork) {
+    const cached = await cacheGet("dic");
+    if (cached && cached.version === CACHE_VERSION && Array.isArray(cached.entries)) {
+      applyEntries(cached.entries, "Vaifise.dic (キャッシュから起動)",
+        (cached.lastModified ? " / 辞書更新: " + cached.lastModified : "") +
+        " / 保存: " + new Date(cached.savedAt).toLocaleString());
+      loading.hidden = true;
+      handleHash();
+      return;
+    }
+  }
+  try {
+    const { entries, reader } = await loadDictionary(DIC_URL, (m, frac) => {
+      msg.textContent = m; bar.style.width = Math.round(frac * 100) + "%";
+    });
+    msg.textContent = "辞書を構築中…"; bar.style.width = "97%";
+    await new Promise(r => setTimeout(r, 0));       // プログレス表示を描画させる
+    applyEntries(entries, "Vaifise.dic (GitHub) から取得",
+      reader.lastModified ? " / 辞書更新: " + reader.lastModified : "");
+    loading.hidden = true;
+    handleHash();
+    cacheSet("dic", { version: CACHE_VERSION, savedAt: Date.now(),
+      lastModified: reader.lastModified, entries });
+  } catch (e) {
+    msg.textContent = "辞書の読み込みに失敗しました";
+    err.innerHTML = esc(String(e.message)) + ' <button id="retry">再試行</button>';
+    $("retry").addEventListener("click", () => bootLive(true));
+  }
+}
+
+bootLive(false);
+</script>
+</body>
+</html>
