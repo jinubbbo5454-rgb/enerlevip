@@ -719,6 +719,10 @@ let FONT_ON = false;
 const lf = s => '<span class="lf">' + lfText(s) + "</span>";
 /* 既に class="lf" を持つ要素の中身用 */
 const lfText = s => esc(FONT_ON ? toDutyulipa(s) : s);
+/* esc()済みの訳文から綴りを取り出す。綴りに現れうる実体参照は &#039; だけ */
+const unescApos = s => s.replace(/&#039;/g, "'");
+/* 訳文中でリパライン語の綴りが取り得る形(esc後) */
+const LF_TOKEN = "[a-z](?:[a-z0-9\u2019]|&#039;)*";
 
 /* ==================== 分解エンジン ==================== */
 function buildIndex(data) {
@@ -1338,6 +1342,11 @@ function renderTranslation(t, query) {
            trimmed + "</a>" + rest;
   });
   html = html.replace(/【[^】\n]{1,12}】/g, m => '<span class="pos">' + m + "</span>");
+  /* 語法欄の派生語(【品詞】に続く綴り。例: 【形容詞】fediomaen)も
+     見出し語と同じくリパライン語なので字体の適用先にする */
+  html = html.replace(
+    new RegExp('(<span class="pos">【[^】\n]*】</span>\\s*)(' + LF_TOKEN + ')', "g"),
+    (m, tag, tok) => tag + lf(unescApos(tok)));
   html = html.replace(/\[語法\]/g, '<span class="usage">[語法]</span>');
   html = html.replace(/^(\[\d{4}[^\]\n]*\])$/gm, '<span class="ety">$1</span>');
   if (query) {
@@ -1370,7 +1379,7 @@ function entryHTML(w, query) {
   }
   if (w.d) {
     h += '<p class="src">出典: ' + w.d.map(p =>
-      '<a data-goto="' + esc(p) + '">' + esc(p) + "</a>").join("、") +
+      '<a class="lf" data-goto="' + esc(p) + '">' + lfText(p) + "</a>").join("、") +
       " の項（語法欄から自動立項）</p>";
   }
   return h + "</article>";
