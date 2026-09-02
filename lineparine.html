@@ -6,6 +6,11 @@
 <meta name="robots" content="noindex, nofollow, noarchive">
 <title>リパライン語 辞書・形態素解析</title>
 <style>
+/* デュテュスン・リパーシェ(デュテュリパ)の書体。辞書と同じリポジトリから取得する */
+@font-face{
+  font-family:"Cirlxarli";
+  src:url("https://raw.githubusercontent.com/jurliyuuri/lineparine/master/fonts/Cirlxarli.woff") format("woff");
+  font-display:swap}
 :root{
   --ink:#1c2530; --paper:#f4f6f8; --card:#ffffff; --line:#d8dee5;
   --accent:#274c8f; --accent-bg:#e7eefb;
@@ -189,6 +194,9 @@ dialog#zoom img{max-width:92vw;max-height:92vh;display:block;border-radius:10px;
   text-decoration:none;border:1px solid var(--line);border-radius:99px;padding:4px 15px;background:var(--card)}
 .backlink:hover{border-color:var(--accent);background:var(--accent-bg)}
 .backlink:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+body.lfont .lf{font-family:"Cirlxarli","SF Mono",Consolas,monospace}
+.fonttoggle{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--meta);
+  cursor:pointer;margin-left:auto;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -203,6 +211,7 @@ dialog#zoom img{max-width:92vw;max-height:92vh;display:block;border-radius:10px;
 <header>
   <h1>リパライン語 辞書・形態素解析</h1>
   <span class="stat" id="stat"></span>
+  <label class="fonttoggle" title="リパライン語の綴りをデュテュリパの字体で表示します（fh=F, vh=V, dz=X。検索の照合はローマ字表記のままです）"><input type="checkbox" id="usefont">リパライン文字で表示</label>
 </header>
 
 <nav class="tabs" role="tablist">
@@ -688,6 +697,28 @@ document.getElementById("tab-wdl").addEventListener("click", () => showTab("wdl"
 const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
                   .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 
+/* ==================== デュテュリパ表記 ====================
+ * デュテュスン・リパーシェ(デュテュリパ)はローマ字表記から機械的に写せる。
+ *   fh -> F, vh -> V, dz -> X。それ以外はすべて小文字。
+ * ъ は二重字化を阻む記号で、字体そのものには現れない。
+ * 例: fъh は F ではなく f と h の2字で書く(ъ自体は出力しない)。 */
+const DUT_DIGRAPH = { fh: "F", vh: "V", dz: "X" };
+function toDutyulipa(s) {
+  const low = s.toLowerCase().replace(/\u2019/g, "'");
+  let out = "";
+  for (let i = 0; i < low.length; i++) {
+    if (low[i] === "\u044a") continue;                 // ъ: 区切るだけで字にはならない
+    const d = DUT_DIGRAPH[low.slice(i, i + 2)];
+    if (d) { out += d; i++; } else out += low[i];
+  }
+  return out;
+}
+let FONT_ON = false;
+/* リパライン語の綴りを出すときはこれを通す。class="lf" が字体の適用先になる */
+const lf = s => '<span class="lf">' + lfText(s) + "</span>";
+/* 既に class="lf" を持つ要素の中身用 */
+const lfText = s => esc(FONT_ON ? toDutyulipa(s) : s);
+
 /* ==================== 分解エンジン ==================== */
 function buildIndex(data) {
   const next = new Map();
@@ -855,16 +886,16 @@ function renderDec() {
   }
   const parseRows = parses => parses.map(p =>
     '<div class="parse">' + p.map(m =>
-      '<button class="morph m-' + m.category + '" data-lookup="' + esc(m.display) + '">' +
-      esc(m.display) + "</button>"
+      '<button class="morph lf m-' + m.category + '" data-lookup="' + esc(m.display) + '">' +
+      lfText(m.display) + "</button>"
     ).join('<span class="joint">+</span>') + "</div>").join("");
   for (const a of analysis) {
     if (a.segments) {
       // ハイフン複合語: 全体は分解せず、各セグメントを個別に分解して表示
-      html += '<div class="word-block"><div class="word-head">' + esc(a.word) +
+      html += '<div class="word-block"><div class="word-head">' + lf(a.word) +
               '<span class="count">ハイフン区切り・' + a.segments.length + '部分</span></div>';
       for (const s of a.segments) {
-        html += '<div class="seg-head">' + esc(s.text) +
+        html += '<div class="seg-head">' + lf(s.text) +
                 ' <span class="count">' + s.parses.length + ' 通り</span></div>';
         html += s.parses.length ? parseRows(s.parses)
           : '<div class="none">この部分は分解できませんでした。</div>';
@@ -872,7 +903,7 @@ function renderDec() {
       html += "</div>";
       continue;
     }
-    html += '<div class="word-block"><div class="word-head">' + esc(a.word) +
+    html += '<div class="word-block"><div class="word-head">' + lf(a.word) +
             '<span class="count">' + a.parses.length + ' 通り</span></div>';
     if (a.parses.length === 0) {
       html += '<div class="none">分解できませんでした。綴りを確認するか、「廃止された緩衝子音」を試してください。</div>';
@@ -1318,7 +1349,7 @@ function renderTranslation(t, query) {
   return html;
 }
 function entryHTML(w, query) {
-  let h = '<article class="entry"><h2>' + esc(w.h);
+  let h = '<article class="entry"><h2>' + lf(w.h);
   if (w.p && w.p.length) h += '<span class="pron">/' + esc(w.p.join(", ")) + "/</span>";
   if (w.d) h += '<span class="dbadge">派生語</span>';
   if (w.f) h += '<span class="foot" title="音節と古典韻律（- 長音節 / ^ 短音節）">' +
@@ -1624,7 +1655,7 @@ function wordleKbd() {
 function wordleMsg(html) { document.getElementById("wmsg").innerHTML = html; }
 function wordleAnswerHTML() {
   const g = glossOf(W.answer) || "";
-  return '<span class="wans" data-lookup-w="' + esc(W.answer) + '">' + esc(W.answer) + "</span>" +
+  return '<span class="wans lf" data-lookup-w="' + esc(W.answer) + '">' + lfText(W.answer) + "</span>" +
          (g ? "（" + esc(g) + "）" : "");
 }
 function wordleKey(k) {
@@ -1822,6 +1853,25 @@ loadImagesFor = async function(headword, container, btn) {
   }
   return _origLoadImages(headword, container, btn);
 };
+
+/* ==================== 書体の切り替え ====================
+ * 表示だけを作り直す。検索・解析・パーマリンクはローマ字表記のまま動く。
+ * 設定は次回の訪問にも引き継ぐ。 */
+function applyFont(on) {
+  FONT_ON = on;
+  document.body.classList.toggle("lfont", on);
+  try { localStorage.setItem("lineparine-font", on ? "1" : "0"); } catch (e) {}
+  if (MORPHOLOGY) renderDec();
+  if (current.length) renderPage(page, false);
+}
+document.getElementById("usefont").addEventListener("change", e => applyFont(e.target.checked));
+try {
+  if (localStorage.getItem("lineparine-font") === "1") {   // 保存された設定の復元
+    document.getElementById("usefont").checked = true;
+    FONT_ON = true;
+    document.body.classList.add("lfont");
+  }
+} catch (e) { /* localStorageが使えない環境ではOFFのまま */ }
 
 bootLive(false);
 </script>
