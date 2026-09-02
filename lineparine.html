@@ -185,6 +185,10 @@ dialog#zoom img{max-width:92vw;max-height:92vh;display:block;border-radius:10px;
   background:var(--card);cursor:pointer;color:var(--accent);margin-top:10px}
 .imgload:hover{border-color:var(--accent)}
 .imgload:disabled{opacity:.5;cursor:wait}
+.backlink{display:inline-block;margin-bottom:14px;font-size:13px;color:var(--accent);
+  text-decoration:none;border:1px solid var(--line);border-radius:99px;padding:4px 15px;background:var(--card)}
+.backlink:hover{border-color:var(--accent);background:var(--accent-bg)}
+.backlink:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -192,8 +196,10 @@ dialog#zoom img{max-width:92vw;max-height:92vh;display:block;border-radius:10px;
   <div id="loadmsg">辞書を読み込んでいます…</div>
   <div id="loadbar"><div id="loadbarin"></div></div>
   <div id="loaderr"></div>
+  <a class="backlink" href="index.html" style="margin:18px 0 0">← enerlevip に戻る</a>
 </div></div>
 <div class="wrap">
+<a class="backlink" href="index.html">← enerlevip に戻る</a>
 <header>
   <h1>リパライン語 辞書・形態素解析</h1>
   <span class="stat" id="stat"></span>

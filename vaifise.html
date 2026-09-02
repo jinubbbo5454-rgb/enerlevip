@@ -107,6 +107,10 @@ table.ctab td{padding:2px 0;font-family:"SF Mono",Consolas,monospace;color:var(-
 #loaderr{color:#8a2e2e;font-size:13px;margin-top:10px}
 #loaderr button{margin-left:8px;padding:4px 14px;border:1px solid var(--line);border-radius:8px;
   background:var(--card);cursor:pointer}
+.backlink{display:inline-block;margin-bottom:14px;font-size:13px;color:var(--accent);
+  text-decoration:none;border:1px solid var(--line);border-radius:99px;padding:4px 15px;background:var(--card)}
+.backlink:hover{border-color:var(--accent);background:var(--accent-bg)}
+.backlink:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -114,8 +118,10 @@ table.ctab td{padding:2px 0;font-family:"SF Mono",Consolas,monospace;color:var(-
   <div id="loadmsg">辞書を読み込んでいます…</div>
   <div id="loadbar"><div id="loadbarin"></div></div>
   <div id="loaderr"></div>
+  <a class="backlink" href="index.html" style="margin:18px 0 0">← enerlevip に戻る</a>
 </div></div>
 <div class="wrap">
+<a class="backlink" href="index.html">← enerlevip に戻る</a>
 <header>
   <h1>ヴェフィス語 辞書</h1>
   <span class="stat" id="stat"></span>
