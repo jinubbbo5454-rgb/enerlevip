@@ -200,13 +200,13 @@ dialog#zoom img{max-width:92vw;max-height:92vh;display:block;border-radius:10px;
 </header>
 
 <nav class="tabs" role="tablist">
-  <button id="tab-dec" role="tab" aria-selected="true">形態素解析</button>
-  <button id="tab-dic" role="tab" aria-selected="false">辞書</button>
+  <button id="tab-dic" role="tab" aria-selected="true">辞書</button>
+  <button id="tab-dec" role="tab" aria-selected="false">形態素解析</button>
   <button id="tab-wdl" role="tab" aria-selected="false">Wordle</button>
 </nav>
 
 <!-- ============ 分解 ============ -->
-<section id="sec-dec" role="tabpanel">
+<section id="sec-dec" role="tabpanel" hidden>
   <div class="panel">
     <div class="inputrow">
       <input type="text" id="word" placeholder="単語を入力（空白区切りで複数可）" spellcheck="false"
@@ -228,7 +228,7 @@ dialog#zoom img{max-width:92vw;max-height:92vh;display:block;border-radius:10px;
 </section>
 
 <!-- ============ 辞書 ============ -->
-<section id="sec-dic" role="tabpanel" hidden>
+<section id="sec-dic" role="tabpanel">
   <div class="searchbar"><div class="panel">
     <input type="search" id="q" placeholder="単語を入力（インクリメンタル検索）" spellcheck="false"
       aria-label="検索語">
