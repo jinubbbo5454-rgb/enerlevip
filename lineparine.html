@@ -1347,6 +1347,17 @@ function renderTranslation(t, query) {
   html = html.replace(
     new RegExp('(<span class="pos">【[^】\n]*】</span>\\s*)(' + LF_TOKEN + ')', "g"),
     (m, tag, tok) => tag + lf(unescApos(tok)));
+  /* [対義語:adioma] [類義語:pedioma,epotaima] のような関連語の並びも綴りなので
+     字体の適用先にする。語源行([2014: f ädiomä:FRE:近視])を巻き込まないよう、
+     ラベルに数字を含まず、中身が綴りの並びだけのときに限る */
+  const tokOnly = new RegExp("^\\s*" + LF_TOKEN + "\\s*$");
+  html = html.replace(/\[([^\[\]\n:：0-9]+)([:：])([^\[\]\n]+)\]/g, (m, label, colon, list) => {
+    const parts = list.split(/([,，、])/);           // 区切り文字を残したまま分ける
+    if (!parts.every((x, i) => i % 2 === 1 || tokOnly.test(x))) return m;
+    const body = parts.map((x, i) => i % 2 === 1 ? x
+      : x.replace(/^(\s*)(\S+)(\s*)$/, (mm, a, tok, b) => a + lf(unescApos(tok)) + b)).join("");
+    return "[" + label + colon + body + "]";
+  });
   html = html.replace(/\[語法\]/g, '<span class="usage">[語法]</span>');
   html = html.replace(/^(\[\d{4}[^\]\n]*\])$/gm, '<span class="ety">$1</span>');
   if (query) {
